@@ -2,29 +2,36 @@ require "sinatra"
 require "instagram"
 require "pp"
 
-set :session_secret, ENV["SESSION_KEY"] || 'supersecret'
+ENV_FILE = "env.yml"
 
+if File.exists?(ENV_FILE)
+  YAML.load(File.open(ENV_FILE)).each do |key, value|
+    ENV[key.to_s] = value
+  end
+end
+
+
+set :session_secret, ENV["SESSION_KEY"] || "SUPERDUPERSECRETPASSWORD"
 enable :sessions
 
-CALLBACK_URL = "http://localhost:4567/oauth/callback"
-
-# my id (@typearson) is 22603120
 
 Instagram.configure do |config|
-  config.client_id = "5afc81320ca54c1596940930c5e0e38b"
-  config.client_secret = "6974a7b4f20d46babd1e1926fa99d031"
+  config.client_id = ENV["CLIENT_ID"]
+  config.client_secret = ENV["CLIENT_SECRET"]
 end
+
+
 
 get "/" do
   erb :home
 end
 
 get "/oauth/connect" do
-  redirect Instagram.authorize_url(:redirect_uri => CALLBACK_URL)
+  redirect Instagram.authorize_url(:redirect_uri => ENV["CALLBACK_URL"])
 end
 
 get "/oauth/callback" do
-  response = Instagram.get_access_token(params[:code], :redirect_uri => CALLBACK_URL)
+  response = Instagram.get_access_token(params[:code], :redirect_uri => ENV["CALLBACK_URL"])
   session[:access_token] = response.access_token
   redirect "/fans"
 end
