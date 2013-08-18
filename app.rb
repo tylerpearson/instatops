@@ -1,6 +1,6 @@
 require "sinatra"
 require "instagram"
-require 'pp'
+require "pp"
 
 set :session_secret, ENV["SESSION_KEY"] || 'supersecret'
 
@@ -8,7 +8,7 @@ enable :sessions
 
 CALLBACK_URL = "http://localhost:4567/oauth/callback"
 
-# my id is 22603120
+# my id (@typearson) is 22603120
 
 Instagram.configure do |config|
   config.client_id = "5afc81320ca54c1596940930c5e0e38b"
@@ -26,16 +26,27 @@ end
 get "/oauth/callback" do
   response = Instagram.get_access_token(params[:code], :redirect_uri => CALLBACK_URL)
   session[:access_token] = response.access_token
-  redirect "/feed"
+  redirect "/fans"
 end
 
-get "/feed" do
+get "/fans" do
   client = Instagram.client(:access_token => session[:access_token])
   user = client.user
   friendsLikers = {}
+
+  # store friends' profile photos separately
   friendsPhotos = {}
 
-  client.user_recent_media.each do |item|
+  # go back 60
+  page_1 = client.user_recent_media
+  page_2_max_id = page_1.pagination.next_max_id
+  page_2 = client.user_recent_media(:max_id => page_2_max_id) unless page_2_max_id.nil?
+  page_3_max_id = page_2.pagination.next_max_id
+  page_3 = client.user_recent_media(:max_id => page_3_max_id) unless page_3_max_id.nil?
+
+  recent_media = page_1 + page_2 + page_3
+
+  recent_media.each do |item|
     if item.likes['count'] > 0
       like_info = Instagram.media_likes(item.id)
       like_info.each do |liker|
@@ -53,6 +64,7 @@ get "/feed" do
   @user = user
   @likers = friendsLikers.sort_by { |username, total| total }.reverse
   @photos = friendsPhotos
+  @count = recent_media.length
 
   erb :friends
 end

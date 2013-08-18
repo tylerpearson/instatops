@@ -1,1 +1,12 @@
-<h1><%= @user.username %>'s top friends on Instragram!</h1>
+<h1><%= @user.username %>'s top fans on Instagram!</h1>
+
+<h2>Looking at the last <%= @count %> photos</h2>
+
+
+<% if @likers.length > 0 %>
+
+    <% @likers.each do |username, total| %>
+        <li><img src="<%= @photos[username] %>" width="50" height="50"><a target="_blank" href="http://instagram.com/<%= username %>"><%= username %></a> (<%= total %> photos)</li>
+    <% end %>
+
+<% end %>
